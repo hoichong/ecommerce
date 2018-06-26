@@ -3,6 +3,8 @@ import httpretty
 from django.conf import settings
 from mock import patch
 from oscar.core.loading import get_model
+from requests.exceptions import ConnectionError
+from slumber.exceptions import SlumberBaseException
 
 from ecommerce.cache_utils.utils import TieredCache
 from ecommerce.core.tests import toggle_switch
@@ -99,6 +101,22 @@ class EnterpriseAPITests(EnterpriseServiceMockMixin, DiscoveryTestMixin, TestCas
         # the cache
         enterprise_api.fetch_enterprise_learner_data(self.request.site, self.learner)
         self._assert_num_requests(expected_number_of_requests)
+
+    @patch("slumber.Resource.get")
+    @ddt.data(ConnectionError, SlumberBaseException)
+    def test_get_response_backoff(self, exception, mocked_get):
+        """
+        Test the helper function _get_response(endpoint, **querystring) backoff and
+        retry in case of request exceptions
+        """
+        mocked_get.side_effect = exception
+
+        self.mock_access_token_response()
+        self.mock_enterprise_learner_api()
+        with self.assertRaises(exception):
+            enterprise_api.fetch_enterprise_learner_data(self.request.site, self.learner)
+
+        self.assertEqual(mocked_get.call_count, 3)
 
     def test_fetch_enterprise_learner_entitlements(self):
         """

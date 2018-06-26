@@ -4,9 +4,10 @@ Methods for fetching enterprise API data.
 import logging
 from urllib import urlencode
 
+import backoff
 from django.conf import settings
 from requests.exceptions import ConnectionError, Timeout
-from slumber.exceptions import SlumberHttpBaseException
+from slumber.exceptions import SlumberBaseException, SlumberHttpBaseException
 
 from ecommerce.cache_utils.utils import TieredCache
 from ecommerce.core.utils import get_cache_key
@@ -162,10 +163,37 @@ def fetch_enterprise_learner_data(site, user):
     api = site.siteconfiguration.enterprise_api_client
     endpoint = getattr(api, api_resource_name)
     querystring = {'username': user.username}
-    response = endpoint().get(**querystring)
+    response = _get_response(endpoint, **querystring)
 
     TieredCache.set_all_tiers(cache_key, response, settings.ENTERPRISE_API_CACHE_TIMEOUT)
     return response
+
+
+@backoff.on_exception(backoff.expo,
+                      (ConnectionError,
+                       SlumberBaseException),
+                      max_tries=3,
+                      max_time=30)
+def _get_response(endpoint, **querystring):
+    """
+        Resilient helper function for fetch_enterprise_learner_data(site, user)
+
+        Arguments:
+            endpoint: api endpoint
+            querystring: Dict containing query parameters
+
+        Returns:
+            dict: see docstring for fetch_enterprise_learner_data(site, user)
+
+        Raises:
+            ConnectionError: requests exception "ConnectionError", raised if if ecommerce is unable to connect
+                to enterprise api server.
+            SlumberBaseException: base slumber exception "SlumberBaseException", raised if API response contains
+                http error status like 4xx, 5xx etc.
+            Timeout: requests exception "Timeout", raised if enterprise API is taking too long for returning
+                a response. This exception is raised for both connection timeout and read timeout.
+    """
+    return endpoint().get(**querystring)
 
 
 def catalog_contains_course_runs(site, course_run_ids, enterprise_customer_uuid, enterprise_customer_catalog_uuid=None):

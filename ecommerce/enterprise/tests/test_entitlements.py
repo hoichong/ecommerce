@@ -235,7 +235,7 @@ class EntitlementsTests(EnterpriseServiceMockMixin, DiscoveryTestMixin, Discover
             expected_entitlements=None,
             log_level='ERROR',
             log_message='Failed to retrieve enterprise info for the learner [%s]' % self.learner.username,
-            expected_request_count=2,
+            expected_request_count=4,
         )
 
     def test_learner_entitlements_with_exception(self):
