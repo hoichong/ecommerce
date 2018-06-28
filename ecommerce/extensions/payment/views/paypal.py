@@ -130,7 +130,7 @@ class PaypalPaymentExecutionView(EdxOrderPlacementMixin, View):
 
             return redirect(receipt_url)
         except Exception as e:  # pylint: disable=broad-except
-            logger.exception(self.order_placement_failure_msg, basket.id, repr(e))
+            logger.exception(self.order_placement_failure_msg, basket.id, e)
             return redirect(receipt_url)
 
 

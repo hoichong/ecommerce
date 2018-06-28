@@ -80,7 +80,7 @@ class OrderCreationMixin(EdxOrderPlacementMixin):
                 request=request
             )
         except Exception as e:  # pylint: disable=broad-except
-            logger.exception(self.order_placement_failure_msg, basket.id, repr(e))
+            logger.exception(self.order_placement_failure_msg, basket.id, e)
             raise
 
 
