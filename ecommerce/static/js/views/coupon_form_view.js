@@ -74,6 +74,11 @@ define([
                     observe: 'category',
                     selectOptions: {
                         collection: function() {
+                            // Don't show Bulk Enrollment in category dropdown.
+                            ecommerce.coupons.categories.models = _.reject(
+                                ecommerce.coupons.categories.models, function(model) {
+                                    return model.get('name') === 'Bulk Enrollment';
+                                });
                             return ecommerce.coupons.categories;
                         },
                         labelPath: 'name',
